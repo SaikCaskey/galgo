@@ -13,16 +13,66 @@ android {
     compileSdkVersion 26
     buildToolsVersion '26.0.1'
 
+    def versionPropsFile = file('version.properties')
+    def versionRevision
+    def versionMajor
+    def versionMinor
+    def versionBuild
+
+    /**
+     * Setting default value for versionBuild which is the last incremented
+     * value stored in the file
+     */
+    if (versionPropsFile.canRead()) {
+        def Properties versionProps = new Properties()
+        versionProps.load(new FileInputStream(versionPropsFile))
+        versionRevision = versionProps['VERSION_REVISION'].toInteger()
+        versionMajor = versionProps['VERSION_MAJOR'].toInteger()
+        versionMinor = versionProps['VERSION_MINOR'].toInteger()
+        versionBuild = versionProps['VERSION_BUILD'].toInteger()
+
+    } else {
+        throw new GradleException("Could not read version.properties file! Make sure it's in app/ directory ")
+    }
     defaultConfig {
         minSdkVersion 9
         targetSdkVersion 26
-        versionCode 2
-        versionName "1.0.3"
+        versionCode versionMajor * 100000 + versionMinor * 10000 + versionRevision * 1000 + versionBuild
+        versionName versionMajor + "." + versionMinor + "." + versionRevision
+        setProperty("archivesBaseName", "galgo-systemecks-" + versionCode)
     }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    /** Wrapping inside a method avoids auto incrementing on every
+     * gradle task run. Now it runs only when we build apk
+     */
+    ext.autoIncrementBuildNumber = {
+
+        if (versionPropsFile.canRead()) {
+            def Properties versionProps = new Properties()
+            versionProps.load(new FileInputStream(versionPropsFile))
+            versionBuild = versionProps['VERSION_BUILD'].toInteger() + 1
+            versionProps['VERSION_BUILD'] = versionBuild.toString()
+            versionProps.store(versionPropsFile.newWriter(), null)
+        } else {
+            throw new GradleException("Could not read version.properties!")
+        }
+    }
+
+    // Hook to check if the release/debug task is among the tasks to be executed.
+    //Let's make use of it
+    gradle.taskGraph.whenReady { taskGraph ->
+        if (taskGraph.hasTask(assembleDebug)) {  /* when run debug task */
+            autoIncrementBuildNumber()
+        } else if (taskGraph.hasTask(assembleRelease)) { /* when run release task */
+            autoIncrementBuildNumber()
+        } else {
+            System.out.print("operation does not qualify for incrememnting build number")
         }
     }
 }
