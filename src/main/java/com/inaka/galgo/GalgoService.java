@@ -17,10 +17,13 @@
  */
 package com.inaka.galgo;
 
+import android.annotation.SuppressLint;
+import android.annotation.TargetApi;
 import android.app.Service;
 import android.content.Intent;
 import android.graphics.PixelFormat;
 import android.os.Binder;
+import android.os.Build;
 import android.os.IBinder;
 import android.text.Spannable;
 import android.text.SpannableString;
@@ -35,11 +38,16 @@ import java.util.Queue;
 
 public class GalgoService extends Service {
 
+    private static final String ACTION_REMOVE_WINDOW = "ACTION_REMOVE_WINDOW";
     private final IBinder mBinder = new LocalBinder();
-    private TextView mTextView;
+    @SuppressLint("StaticFieldLeak")
+    public static TextView mTextView;
+    @SuppressLint("StaticFieldLeak")
+    public static GalgoService mInstance;
     private GalgoOptions mOptions;
     private final Queue<String> mLines = new ArrayDeque<>();
 
+    @SuppressWarnings("WeakerAccess")
     public class LocalBinder extends Binder {
         public GalgoService getService() {
             return GalgoService.this;
@@ -52,18 +60,16 @@ public class GalgoService extends Service {
         return mBinder;
     }
 
+    @SuppressWarnings("unused")
+    public static GalgoService getInstance() {
+        return mInstance;
+    }
+
     @Override
     public void onCreate() {
         super.onCreate();
-
-        mTextView = new TextView(this);
-
-        WindowManager.LayoutParams params = new WindowManager.LayoutParams(
-                WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT,
-                WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE, PixelFormat.TRANSLUCENT);
-        WindowManager wm = (WindowManager) getSystemService(WINDOW_SERVICE);
-        wm.addView(mTextView, params);
+        mInstance = this;
+        addWindowSdk19();
     }
 
     public void displayText(String text) {
@@ -75,7 +81,10 @@ public class GalgoService extends Service {
         redraw(mLines);
     }
 
+    @TargetApi(Build.VERSION_CODES.KITKAT)
     private void redraw(Collection<String> texts) {
+        addWindowSdk19();
+
         mTextView.setTextSize(mOptions.textSize);
         mTextView.setTextColor(mOptions.textColor);
 
@@ -86,12 +95,34 @@ public class GalgoService extends Service {
         mTextView.setText(spannable);
     }
 
+    @TargetApi(Build.VERSION_CODES.KITKAT)
+    public void addWindowSdk19() {
+        if (mTextView == null || !mTextView.isAttachedToWindow()) {
+            removeWindow();
+            mTextView = new TextView(this);
+            WindowManager.LayoutParams params = new WindowManager.LayoutParams(
+                    WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT,
+                    WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY,
+                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE, PixelFormat.TRANSLUCENT);
+            WindowManager wm = (WindowManager) getSystemService(WINDOW_SERVICE);
+            wm.addView(mTextView, params);
+        }
+    }
+
+    public static void removeWindow() {
+        if (mInstance != null) {
+            if (mTextView != null) {
+                WindowManager wm = (WindowManager) mInstance.getSystemService(WINDOW_SERVICE);
+                wm.removeView(mTextView);
+                mTextView = null;
+                mInstance.stopSelf();
+            }
+        }
+    }
+
     @Override
     public void onDestroy() {
+        removeWindow();
         super.onDestroy();
-        if (mTextView != null) {
-            WindowManager wm = (WindowManager) getSystemService(WINDOW_SERVICE);
-            wm.removeView(mTextView);
-        }
     }
 }
