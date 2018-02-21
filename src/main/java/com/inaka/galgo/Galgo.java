@@ -109,6 +109,11 @@ public class Galgo {
 
     private static void checkPermission(Context context) {
         String permission = "android.permission.SYSTEM_ALERT_WINDOW";
+
+        if (context == null) {
+            throw new IllegalStateException("You have to initialise Galgo with a non-null context first");
+        }
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (!Settings.canDrawOverlays(context)) {
                 throw new IllegalStateException("in order to use Galgo, " +
