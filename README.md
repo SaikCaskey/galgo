@@ -21,8 +21,6 @@ Include this in your app/ build.gradle dependencies:
 ```implementation 'com.github.saikcaskey:systemecks-galgo:1.0.1'```
 
 You may also need to add this to your top-level build.gradle file : 
-```maven { 
-           url "http://dl.bintray.com/systemecks/system-ecks" 
-         } 
-```
+
+```maven { url "http://dl.bintray.com/systemecks/system-ecks" }```
 
