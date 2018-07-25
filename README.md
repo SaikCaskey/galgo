@@ -16,8 +16,13 @@ You can easily customise Galgo, as you can see me do in ```showLogCatLogsOverlay
 if you do use this, be aware that I might not maintain it
 
 ## Gradle
-```compile 'com.github.saikcaskey:systemecks-galgo:1.0.1'```
+Include this in your app/ build.gradle dependencies: 
 
-You may also need to add this to your top-level build.gradle file 
-```maven { url "http://dl.bintray.com/systemecks/system-ecks" } ```
+```implementation 'com.github.saikcaskey:systemecks-galgo:1.0.1'```
+
+You may also need to add this to your top-level build.gradle file : 
+```maven { 
+           url "http://dl.bintray.com/systemecks/system-ecks" 
+         } 
+```
 
